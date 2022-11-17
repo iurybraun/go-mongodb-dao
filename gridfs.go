@@ -1,6 +1,11 @@
 /*
  * Copyright © 2016-2022 Iury Braun
  * Copyright © 2017-2022 BRAUN TECH
+ * 
+ * Alt:  Id bson.ObjectId  ==>  id interface{}
+ * 
+ * https://github.com/ReLaboratory/mulbitchorong-backend/blob/ec0bf74c43db49af18540558ec2033a7520b02d9/handle/upload.go
+ * https://github.com/c-jimin/codetech/blob/635798468c09fecb3baa86ba037d8a537c0ad2a7/DaoAndModel/file.go
  */
 
 package go_mongodb_dao
