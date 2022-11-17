@@ -46,11 +46,13 @@ type Dao struct {
 	Collection string
 }
 
-var client *mongo.Client
-var mongoURL = "mongodb://localhost:27017"
+
+var (
+    client     *mongo.Client
+    mongoURL = "mongodb://localhost:27017"
+)
 
 // Connect with mongo server
-/** OLD
 func init() {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
     conn, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURL))
@@ -63,29 +65,13 @@ func init() {
     }
     
     client = conn
-}*/
-func (u *Dao) Connect() {
-	var err error
-	client, err = mongo.NewClient(options.Client().ApplyURI(config.MongoUrlConnection))
-	checkErr(err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	err = client.Connect(ctx)
-	checkErr(err)
-}
-
-func (u *Dao) Disconnect() {
-	err := client.Disconnect(context.Background())
-	checkErr(err)
 }
 
 
 func (m *Dao) Insert(doc interface{}) (interface{}, error) {
     var collection = client.Database(m.Database).Collection(m.Collection)
     
-	insertResult, err := collection.InsertOne(context.Background(), doc)
+	insertResult, err := collection.InsertOne(context.TODO(), doc)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +88,7 @@ func (m *Dao) FindByID(_id string) (map[string]interface{}, error) {
 		return nil, err
 	}
     
-    findOne := collection.FindOne(context.Background(), bson.M{"_id": objID})
+    findOne := collection.FindOne(context.TODO(), bson.M{"_id": objID})
 	if err := findOne.Err(); err != nil {
 		return nil, err
 	}
@@ -120,7 +106,7 @@ func (m *Dao) FindOneWithFilters(qry map[string]interface{}) (map[string]interfa
 	doc := make(map[string]interface{})
     var collection = client.Database(m.Database).Collection(m.Collection)
     
-    findOne := collection.FindOne(context.Background(), qry)
+    findOne := collection.FindOne(context.TODO(), qry)
 	if err := findOne.Err(); err != nil {
 		return nil, err
 	}
@@ -141,7 +127,7 @@ func (m *Dao) FindAll() ([]map[string]interface{}, error) {
     ctx, _ := context.WithTimeout(context.Background(), 15*time.Second)
     
     n := make(map[string]interface{}, 0)
-    cursor, err := collection.Find(context.Background(), bson.M{})
+    cursor, err := collection.Find(context.TODO(), bson.M{})
 	if err != nil {
         defer cursor.Close(ctx)
 		return nil, err
@@ -167,7 +153,7 @@ func (m *Dao) FindAll() ([]map[string]interface{}, error) {
     */
     
     // Dont forget to close the cursor
-    defer cursor.Close(context.Background())
+    defer cursor.Close(context.TODO())
     
     return docs, nil
 }
@@ -212,7 +198,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
             }
     }
     
-    cursor, err := collection.Find(context.Background(), qry, findOptions)
+    cursor, err := collection.Find(context.TODO(), qry, findOptions)
 	if err != nil {
         defer cursor.Close(ctx)
 		return nil, err
@@ -232,7 +218,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
     }
     
     // Dont forget to close the cursor
-    defer cursor.Close(context.Background())
+    defer cursor.Close(context.TODO())
     
     return docs, nil
 }
@@ -281,7 +267,7 @@ func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) 
     // Declare Context type object for managing multiple API requests
     ctx, _ := context.WithTimeout(context.Background(), 15*time.Second)
     
-    cursor, err := collection.Aggregate(context.Background(), pipeline)
+    cursor, err := collection.Aggregate(context.TODO(), pipeline)
 	if err != nil {
         defer cursor.Close(ctx)
 		return nil, err
@@ -299,7 +285,7 @@ func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) 
     }
     
     // Dont forget to close the cursor
-    defer cursor.Close(context.Background())
+    defer cursor.Close(context.TODO())
     
     return docs, nil
 }
@@ -319,7 +305,7 @@ func (m *Dao) Update(_id string, doc interface{}) (count int64, err error) {
 	}
 
 	resultUpdate, err := collection.UpdateOne(
-		context.Background(),
+		context.TODO(),
 		bson.M{"_id": objID},
 		bson.M{
 			"$set": &doc,
@@ -350,7 +336,7 @@ func (m *Dao) UpdateWithFilters(qry map[string]interface{}, doc interface{}) (co
     var collection = client.Database(m.Database).Collection(m.Collection)
     
 	resultUpdate, err := collection.UpdateMany(
-		context.Background(),
+		context.TODO(),
 		qry,
 		&doc,
 	)
@@ -365,7 +351,7 @@ func (m *Dao) UpdateManyWithFilters(qry map[string]interface{}, doc interface{})
     var collection = client.Database(m.Database).Collection(m.Collection)
     
 	resultUpdate, err := collection.UpdateMany(
-		context.Background(),
+		context.TODO(),
 		qry,
 		bson.M{
 			"$set": &doc,
@@ -387,7 +373,7 @@ func (m *Dao) Delete(_id string) (count int64, err error) {
 		return -1, err
 	}
 
-	resultDelete, err := collection.DeleteOne(context.Background(), bson.M{"_id": objID})
+	resultDelete, err := collection.DeleteOne(context.TODO(), bson.M{"_id": objID})
 	if err != nil {
 		return -1, err
 	}
@@ -399,7 +385,7 @@ func (m *Dao) Delete(_id string) (count int64, err error) {
 func (m *Dao) DeleteAll(qry map[string]interface{}) (count int64, err error) {
     var collection = client.Database(m.Database).Collection(m.Collection)
     
-    result, err := collection.DeleteMany(context.Background(), qry)
+    result, err := collection.DeleteMany(context.TODO(), qry)
     return result.DeletedCount, err
 }
 
@@ -418,15 +404,4 @@ func (m *Dao) Stats() (map[string]interface{}, error) {
     }
     
     return document, nil
-}
-
-
-func getCollection(u *Dao) *mongo.Collection {
-	return client.Database(u.Database).Collection(u.Collection)
-}
-
-func checkErr(err error) {
-	if err != nil {
-		log.Println(err)
-	}
 }
