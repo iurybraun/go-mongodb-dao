@@ -1,6 +1,6 @@
 /*
  * Copyright © 2016-2022 Iury Braun
- * Copyright © 2017-2022 BRAUN TECH
+ * Copyright © 2017-2022 Neo7i
  * 
  * Alt:  Id bson.ObjectId  ==>  id interface{}
  * 
@@ -47,13 +47,13 @@ import (
 
 const defaultFilesBucket = "fs"
 
-func (u *DAO) CreateGridFSObject(file multipart.File, filename, contentType, path, user string) (interface{}, error) {
+func (m *Dao) CreateGridFSObject(file multipart.File, filename, contentType, path, user string) (interface{}, error) {
     //var conn db.Connection
-    var collection = client.Database(u.Database)  //.Collection(m.Collection)
+    var collection = client.Database(m.Database)  //.Collection(m.Collection)
 	//bucket, err := GetBucket(fileBucket, &conn)
     var filesBucket string
-    if u.Collection != "" {
-        filesBucket = u.Collection
+    if m.Collection != "" {
+        filesBucket = m.Collection
     } else {
         filesBucket = defaultFilesBucket
     }
@@ -82,7 +82,7 @@ func (u *DAO) CreateGridFSObject(file multipart.File, filename, contentType, pat
     fileID := uploadStream.FileID
     
     /* update md5/contentType */
-    var collectionUpdate = client.Database(u.Database).Collection(filesBucket + ".files")
+    var collectionUpdate = client.Database(m.Database).Collection(filesBucket + ".files")
     _, errUpdate := collectionUpdate.UpdateOne(
 		context.Background(),
 		bson.M{"_id": fileID},
@@ -118,13 +118,13 @@ func WriteToGridFile(file multipart.File, uploadStream *gridfs.UploadStream) err
 	return nil
 }
 
-func (u *DAO) ReadGridFSObject(fileID string) (*bytes.Buffer, error) {
+func (m *Dao) ReadGridFSObject(fileID string) (*bytes.Buffer, error) {
     //var conn db.Connection
-	var collection = client.Database(u.Database)  //.Collection(m.Collection)
+	var collection = client.Database(m.Database)  //.Collection(m.Collection)
     //bucket, err := GetBucket(fileBucket, &conn)
     var filesBucket string
-    if u.Collection != "" {
-        filesBucket = u.Collection
+    if m.Collection != "" {
+        filesBucket = m.Collection
     } else {
         filesBucket = defaultFilesBucket
     }
@@ -145,11 +145,11 @@ func (u *DAO) ReadGridFSObject(fileID string) (*bytes.Buffer, error) {
 	return &buffer, nil
 }
 
-func (u *DAO) RemoveGridFSObject(fileID interface{}) error {
-    var collection = client.Database(u.Database)  //.Collection(m.Collection)
+func (m *Dao) RemoveGridFSObject(fileID interface{}) error {
+    var collection = client.Database(m.Database)  //.Collection(m.Collection)
     var filesBucket string
-    if u.Collection != "" {
-        filesBucket = u.Collection
+    if m.Collection != "" {
+        filesBucket = m.Collection
     } else {
         filesBucket = defaultFilesBucket
     }
