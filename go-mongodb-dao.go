@@ -1,6 +1,22 @@
 /*
  * Copyright © 2016-2022 Iury Braun
  * Copyright © 2017-2022 BRAUN TECH
+ * 
+ * Alt:  Id bson.ObjectId  ==>  id interface{}
+ * 
+ * POOL:
+ *  https://stackoverflow.com/questions/57998402/how-can-i-convert-my-mgo-sessions-to-mongo-go-driver-clients-using-connection-po
+ *  https://kb.objectrocket.com/mongo-db/how-to-get-mongodb-documents-using-golang-446
+ * 
+ *  https://github.com/FrevChuso/mongo-crud-base
+ *  https://github.com/Pokervarino27/crud_go_mongodb
+ *  https://github.com/cloudgate313/go-mongodb-crud
+ * 
+ * PAGINATION:
+ *  https://github.com/carlosstrand/graphql-pagination-go
+ *  https://shopify.dev/concepts/graphql
+ *  https://medium.com/@mattmazzola/graphql-pagination-implementation-8604f77fb254
+ *  https://stackoverflow.com/questions/51179588/how-to-sort-and-limit-results-in-mongodb
  */
 
 package go_mongodb_dao
