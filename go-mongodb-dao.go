@@ -176,7 +176,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
         findOptions.SetLimit(int64(limit)) // like `limit` clause in mysql
     }
     
-    /**if after != "" {
+    if after != "" {
         objID, err := primitive.ObjectIDFromHex(after)
         if err != nil {
             return nil, err
@@ -196,33 +196,13 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
         qry["_id"] = bson.M{
                 "$lt": objID,
             }
-    }**/
+    }
     
     cursor, err := collection.Find(context.TODO(), qry, findOptions)
     if err != nil {
         defer cursor.Close(ctx)
         return nil, err
     }
-    
-    /** **/
-    var objIDAfter primitive.ObjectID
-    afterStart := false
-    if after != "" {
-        objIDAfter, err = primitive.ObjectIDFromHex(after)
-        if err != nil {
-            return nil, err
-        }
-    }
-    
-    var objIDBefore primitive.ObjectID
-    beforeStop := false
-    if before != "" {
-        objIDBefore, err = primitive.ObjectIDFromHex(before)
-        if err != nil {
-            return nil, err
-        }
-    }
-    /** **/
     
     for cursor.Next(ctx) {
         n := make(map[string]interface{}, 0)
@@ -233,21 +213,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
             fmt.Println("cursor.Next() error:", err)
             os.Exit(1)
         } else {
-            ///docs = append(docs, n)
-            
-            /** **/
-            ObjectIdHex := (docs)["_id"].(primitive.ObjectID)
-            if objIDAfter.Hex() == docs.Hex() {
-                afterStart = true
-            }
-            if objIDBefor.Hex() == docs.Hex() {
-                beforeStop = true
-            }
-            
-            if afterStart == true && beforeStop == false {
-                docs = append(docs, n)
-            }
-            /** **/
+            docs = append(docs, n)
         }
     }
     
