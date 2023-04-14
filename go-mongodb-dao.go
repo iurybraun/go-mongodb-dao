@@ -1,6 +1,6 @@
 /*
  * Copyright © 2016-2022 Iury Braun
- * Copyright © 2017-2022 Neo7i
+ * Copyright © 2017-2022 BRAUN TECH
  * 
  * Alt:  Id bson.ObjectId  ==>  id interface{}
  * 
