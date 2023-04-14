@@ -208,7 +208,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
     var objIDAfter primitive.ObjectID
     afterStart := false
     if after != "" {
-        objID, err := primitive.ObjectIDFromHex(after)
+        objIDAfter, err = primitive.ObjectIDFromHex(after)
         if err != nil {
             return nil, err
         }
@@ -217,7 +217,7 @@ func (m *Dao) FindAllWithFilters(qry map[string]interface{}, sort map[string]int
     var objIDBefore primitive.ObjectID
     beforeStop := false
     if before != "" {
-        objID, err := primitive.ObjectIDFromHex(before)
+        objIDBefore, err = primitive.ObjectIDFromHex(before)
         if err != nil {
             return nil, err
         }
