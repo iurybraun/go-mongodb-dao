@@ -86,11 +86,11 @@ func Connect(mongoURI string) error {
 
 	conn, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		return fmt.Errorf("mongo.Connect: %w", err)
+		return err
 	}
 
 	if err = conn.Ping(ctx, readpref.Primary()); err != nil {
-		return fmt.Errorf("mongo ping: %w", err)
+		return err
 	}
 
 	client = conn
@@ -117,7 +117,7 @@ func (m *Dao) Insert(doc interface{}) (interface{}, error) {
 
 	result, err := collection.InsertOne(context.TODO(), doc)
 	if err != nil {
-		return nil, fmt.Errorf("Insert: %w", err)
+		return nil, err
 	}
 
 	return result.InsertedID, nil
@@ -130,7 +130,7 @@ func (m *Dao) InsertMany(docs []interface{}) ([]interface{}, error) {
 
 	result, err := collection.InsertMany(context.TODO(), docs)
 	if err != nil {
-		return nil, fmt.Errorf("InsertMany: %w", err)
+		return nil, err
 	}
 
 	return result.InsertedIDs, nil
@@ -152,11 +152,11 @@ func (m *Dao) FindByID(_id string) (map[string]interface{}, error) {
 	doc := make(map[string]interface{})
 	findOne := collection.FindOne(context.TODO(), bson.M{"_id": objID})
 	if err := findOne.Err(); err != nil {
-		return nil, fmt.Errorf("FindByID: %w", err)
+		return nil, err
 	}
 
 	if err = findOne.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("FindByID decode: %w", err)
+		return nil, err
 	}
 
 	return doc, nil
@@ -168,12 +168,12 @@ func (m *Dao) FindOneWithFilters(qry map[string]interface{}) (map[string]interfa
 
 	findOne := collection.FindOne(context.TODO(), qry)
 	if err := findOne.Err(); err != nil {
-		return nil, fmt.Errorf("FindOneWithFilters: %w", err)
+		return nil, err
 	}
 
 	doc := make(map[string]interface{})
 	if err := findOne.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("FindOneWithFilters decode: %w", err)
+		return nil, err
 	}
 
 	return doc, nil
@@ -188,7 +188,7 @@ func (m *Dao) FindAll() ([]map[string]interface{}, error) {
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		return nil, fmt.Errorf("FindAll: %w", err)
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
@@ -198,13 +198,13 @@ func (m *Dao) FindAll() ([]map[string]interface{}, error) {
 		// pointing to the same underlying map (reference bug).
 		n := make(map[string]interface{})
 		if err := cursor.Decode(&n); err != nil {
-			return nil, fmt.Errorf("FindAll decode: %w", err)
+			return nil, err
 		}
 		docs = append(docs, n)
 	}
 
 	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("FindAll cursor: %w", err)
+		return nil, err
 	}
 
 	return docs, nil
@@ -253,7 +253,7 @@ func (m *Dao) FindAllWithFilters(
 
 	cursor, err := collection.Find(ctx, qry, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("FindAllWithFilters: %w", err)
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
@@ -261,13 +261,13 @@ func (m *Dao) FindAllWithFilters(
 	for cursor.Next(ctx) {
 		n := make(map[string]interface{})
 		if err := cursor.Decode(&n); err != nil {
-			return nil, fmt.Errorf("FindAllWithFilters decode: %w", err)
+			return nil, err
 		}
 		docs = append(docs, n)
 	}
 
 	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("FindAllWithFilters cursor: %w", err)
+		return nil, err
 	}
 
 	return docs, nil
@@ -286,7 +286,7 @@ func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) 
 
 	cursor, err := collection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return nil, fmt.Errorf("Aggregate: %w", err)
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
@@ -294,13 +294,13 @@ func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) 
 	for cursor.Next(ctx) {
 		n := make(map[string]interface{})
 		if err := cursor.Decode(&n); err != nil {
-			return nil, fmt.Errorf("Aggregate decode: %w", err)
+			return nil, err
 		}
 		docs = append(docs, n)
 	}
 
 	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("Aggregate cursor: %w", err)
+		return nil, err
 	}
 
 	return docs, nil
@@ -326,7 +326,7 @@ func (m *Dao) Update(_id string, doc interface{}) (int64, error) {
 		bson.M{"$set": doc},
 	)
 	if err != nil {
-		return -1, fmt.Errorf("Update: %w", err)
+		return -1, err
 	}
 
 	return result.ModifiedCount, nil
@@ -340,7 +340,7 @@ func (m *Dao) UpdateWithFilters(qry map[string]interface{}, doc interface{}) (in
 
 	result, err := collection.UpdateMany(context.TODO(), qry, doc)
 	if err != nil {
-		return -1, fmt.Errorf("UpdateWithFilters: %w", err)
+		return -1, err
 	}
 
 	return result.ModifiedCount, nil
@@ -357,7 +357,7 @@ func (m *Dao) UpdateManyWithFilters(qry map[string]interface{}, doc interface{})
 		bson.M{"$set": doc},
 	)
 	if err != nil {
-		return -1, fmt.Errorf("UpdateManyWithFilters: %w", err)
+		return -1, err
 	}
 
 	return result.ModifiedCount, nil
@@ -377,7 +377,7 @@ func (m *Dao) Upsert(qry map[string]interface{}, doc interface{}) (int64, error)
 		opts,
 	)
 	if err != nil {
-		return -1, fmt.Errorf("Upsert: %w", err)
+		return -1, err
 	}
 
 	return result.ModifiedCount + result.UpsertedCount, nil
@@ -398,7 +398,7 @@ func (m *Dao) Delete(_id string) (int64, error) {
 
 	result, err := collection.DeleteOne(context.TODO(), bson.M{"_id": objID})
 	if err != nil {
-		return -1, fmt.Errorf("Delete: %w", err)
+		return -1, err
 	}
 
 	return result.DeletedCount, nil
@@ -410,7 +410,7 @@ func (m *Dao) DeleteAll(qry map[string]interface{}) (int64, error) {
 
 	result, err := collection.DeleteMany(context.TODO(), qry)
 	if err != nil {
-		return -1, fmt.Errorf("DeleteAll: %w", err)
+		return -1, err
 	}
 
 	return result.DeletedCount, nil
@@ -428,7 +428,7 @@ func (m *Dao) Stats() (map[string]interface{}, error) {
 
 	var document bson.M
 	if err := result.Decode(&document); err != nil {
-		return nil, fmt.Errorf("Stats: %w", err)
+		return nil, err
 	}
 
 	return document, nil
