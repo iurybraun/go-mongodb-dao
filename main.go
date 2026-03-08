@@ -1,10 +1,11 @@
 /*
- * Copyright © 2016-2026 Iury Braun
- * Copyright © 2017-2026 VOLKER
+ * Copyright © 2016-2022 Iury Braun
+ * Copyright © 2017-2022 BRAUN TECH
  *
  * Refatorado: correções de context leak, bug de referência em cursor,
  * os.Exit/log.Fatal removidos, cursor.Close corrigido, URL via env,
- * init() substituído por Connect(), Upsert e InsertMany adicionados.
+ * init() substituído por Connect(), Upsert e InsertMany adicionados,
+ * SetDatabase/GetDatabase para configuração global do banco de dados.
  */
 
 package go_mongodb_dao
@@ -26,12 +27,39 @@ const defaultTimeout = 10 * time.Second
 const queryTimeout = 120 * time.Second
 
 // Dao struct holds the target database and collection names.
+// If Database is empty, the value set via SetDatabase() is used.
 type Dao struct {
 	Database   string
 	Collection string
 }
 
-var client *mongo.Client
+// database resolves the effective database name: uses Dao.Database when
+// explicitly set, otherwise falls back to the global dbName configured
+// via SetDatabase().
+func (m *Dao) database() string {
+	if m.Database != "" {
+		return m.Database
+	}
+	return dbName
+}
+
+var (
+	client *mongo.Client
+	dbName string
+)
+
+// SetDatabase defines the default database name used by all DAO operations
+// when Dao.Database is empty. Call this once during application startup.
+//
+//	dao.SetDatabase(cfg_ini.LoadKey_string("database", "dbname"))
+func SetDatabase(name string) {
+	dbName = name
+}
+
+// GetDatabase returns the currently configured default database name.
+func GetDatabase() string {
+	return dbName
+}
 
 // getMongoURL returns the MongoDB connection URL from the environment
 // variable MONGO_URL, falling back to localhost if not set.
@@ -85,7 +113,7 @@ func Disconnect() error {
 
 // Insert adds a single document to the collection and returns its ID.
 func (m *Dao) Insert(doc interface{}) (interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	result, err := collection.InsertOne(context.TODO(), doc)
 	if err != nil {
@@ -98,7 +126,7 @@ func (m *Dao) Insert(doc interface{}) (interface{}, error) {
 // InsertMany adds multiple documents to the collection in a single
 // round-trip and returns their inserted IDs.
 func (m *Dao) InsertMany(docs []interface{}) ([]interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	result, err := collection.InsertMany(context.TODO(), docs)
 	if err != nil {
@@ -114,7 +142,7 @@ func (m *Dao) InsertMany(docs []interface{}) ([]interface{}, error) {
 
 // FindByID retrieves a single document by its ObjectID hex string.
 func (m *Dao) FindByID(_id string) (map[string]interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	objID, err := primitive.ObjectIDFromHex(_id)
 	if err != nil {
@@ -136,7 +164,7 @@ func (m *Dao) FindByID(_id string) (map[string]interface{}, error) {
 
 // FindOneWithFilters retrieves the first document matching the given query.
 func (m *Dao) FindOneWithFilters(qry map[string]interface{}) (map[string]interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	findOne := collection.FindOne(context.TODO(), qry)
 	if err := findOne.Err(); err != nil {
@@ -153,7 +181,7 @@ func (m *Dao) FindOneWithFilters(qry map[string]interface{}) (map[string]interfa
 
 // FindAll returns every document in the collection.
 func (m *Dao) FindAll() ([]map[string]interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
@@ -192,7 +220,7 @@ func (m *Dao) FindAllWithFilters(
 	after, before string,
 ) ([]map[string]interface{}, error) {
 
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
@@ -251,7 +279,7 @@ func (m *Dao) FindAllWithFilters(
 
 // Aggregate executes a pipeline and returns the resulting documents.
 func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
 	defer cancel()
@@ -285,7 +313,7 @@ func (m *Dao) Aggregate(pipeline interface{}) ([]map[string]interface{}, error) 
 // Update replaces the fields of a single document (identified by _id)
 // using $set.
 func (m *Dao) Update(_id string, doc interface{}) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	objID, err := primitive.ObjectIDFromHex(_id)
 	if err != nil {
@@ -308,7 +336,7 @@ func (m *Dao) Update(_id string, doc interface{}) (int64, error) {
 // update operator such as $set, $unset, etc.) to all documents that
 // match qry.
 func (m *Dao) UpdateWithFilters(qry map[string]interface{}, doc interface{}) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	result, err := collection.UpdateMany(context.TODO(), qry, doc)
 	if err != nil {
@@ -321,7 +349,7 @@ func (m *Dao) UpdateWithFilters(qry map[string]interface{}, doc interface{}) (in
 // UpdateManyWithFilters applies $set with doc to all documents matching
 // qry.
 func (m *Dao) UpdateManyWithFilters(qry map[string]interface{}, doc interface{}) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	result, err := collection.UpdateMany(
 		context.TODO(),
@@ -339,7 +367,7 @@ func (m *Dao) UpdateManyWithFilters(qry map[string]interface{}, doc interface{})
 // a new document when no match is found. Returns the number of documents
 // modified or inserted.
 func (m *Dao) Upsert(qry map[string]interface{}, doc interface{}) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	opts := options.Update().SetUpsert(true)
 	result, err := collection.UpdateOne(
@@ -361,7 +389,7 @@ func (m *Dao) Upsert(qry map[string]interface{}, doc interface{}) (int64, error)
 
 // Delete removes the document with the given ObjectID hex string.
 func (m *Dao) Delete(_id string) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	objID, err := primitive.ObjectIDFromHex(_id)
 	if err != nil {
@@ -378,7 +406,7 @@ func (m *Dao) Delete(_id string) (int64, error) {
 
 // DeleteAll removes every document matching qry from the collection.
 func (m *Dao) DeleteAll(qry map[string]interface{}) (int64, error) {
-	collection := client.Database(m.Database).Collection(m.Collection)
+	collection := client.Database(m.database()).Collection(m.Collection)
 
 	result, err := collection.DeleteMany(context.TODO(), qry)
 	if err != nil {
@@ -394,7 +422,7 @@ func (m *Dao) DeleteAll(qry map[string]interface{}) (int64, error) {
 
 // Stats returns collection-level statistics via the collStats command.
 func (m *Dao) Stats() (map[string]interface{}, error) {
-	db := client.Database(m.Database)
+	db := client.Database(m.database())
 
 	result := db.RunCommand(context.Background(), bson.M{"collStats": m.Collection})
 
